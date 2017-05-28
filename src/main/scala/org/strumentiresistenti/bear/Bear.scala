@@ -6,18 +6,16 @@ import System.err.{println => errln}
 /**
  * The application data model
  */
-class Bear {
+class Bear(val driver: String, val url: String, val user: String, val password: String) {
   implicit val session: DBSession = AutoSession
   
-  def init(driver: String, url: String, user: String, password: String): Unit = {
-    errln(s"Provided driver: $driver")
-    errln(s"Provided URL: $url")
-    errln(s"Provided user: $user")
-    errln(s"Provided password: $password")
+  errln(s"Provided driver: $driver")
+  errln(s"Provided URL: $url")
+  errln(s"Provided user: $user")
+  errln(s"Provided password: ${password.replaceAll(".", "*")}")
 
-    Class.forName(driver)
-    ConnectionPool.singleton(url, user, password)
-  }
+  Class.forName(driver)
+  ConnectionPool.singleton(url, user, password)
 
   def exec(sql: String): Unit = try {
   	SQL(sql).execute.apply()
@@ -67,18 +65,16 @@ object Bear extends App {
    */
   val opts = Opts.parse(args)
   
-  /**
-   * Emit buffer and output channel
+  /*
+   * init the Emitter
    */
-  var buffer = ""
-  var outputFile: java.io.File = 
-    if (opts.output.length > 0) new java.io.File(opts.output) else null
+  Emitter.init(opts)
+  import Emitter.{comment, emit}
   
   /*
    * open the connection
    */
-  val b = new Bear()
-  b.init(opts.driver, opts.pureUrl, opts.user, opts.pass)
+  val src = new Bear(opts.driver, opts.pureUrl, opts.user, opts.pass)
 
   /*
    * do the dump
@@ -96,17 +92,17 @@ object Bear extends App {
    * internal methods
    */
   private def dumpAllDatabases: Unit = {
-    val dbs = b.getDatabases.map(_.database) 
+    val dbs = src.getDatabases.map(_.database) 
     dbs.foreach(dumpDatabase) 
   }
 
   private def dumpDatabase(db: String): Unit = {
-  	b.exec(s"use $db")
+  	src.exec(s"use $db")
   	
   	TableDeps.clean
-  	buffer = ""
+  	Emitter.reset
     
-    val tables = b.getTables.map(_.name)
+    val tables = src.getTables.map(_.name)
     
     comment(s"""
       |-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -122,7 +118,7 @@ object Bear extends App {
   }
   
   private def dumpTable(tbl: String, db: String): Unit = {
-    val ddl = b.getTableDDL(tbl)
+    val ddl = src.getTableDDL(tbl)
     
     if (ddl.toUpperCase().contains("CREATE VIEW")) {
       TableDeps.addViewCandidate(tbl, db, ddl)
@@ -148,7 +144,7 @@ object Bear extends App {
   }
   
   private def dumpTablePartitions(tbl: String): Unit = {
-    val parts = b.getTablePartitions(tbl)
+    val parts = src.getTablePartitions(tbl)
     parts foreach { p =>
       val tokens = p.ddl.split("/").toList
       val escaped = tokens.map { _.replaceAll("=", "='") + "'" }.mkString(",")
@@ -171,7 +167,7 @@ object Bear extends App {
     comment(s"\n--\n-- Dumping ${vs.size} views\n--\n")
     vs foreach { case (_, views) =>
       views foreach { s =>
-        val ddl = b.getTableDDL(s)
+        val ddl = src.getTableDDL(s)
         dumpView(s, ddl)
       }
     }
@@ -184,21 +180,4 @@ object Bear extends App {
     emit(s"$ddl;")
   }
   
-  private def printToFile(f: java.io.File)(op: java.io.PrintWriter => Unit) {
-    val p = new java.io.PrintWriter(f)
-    try { op(p) } finally { p.close() }
-  }
-  
-  /**
-   * Receive a new line of output and buffer it, or forward it
-   * to destination, or dump it on stdout
-   */
-  def emit(s: String, comment: Boolean = false): Unit = {
-    buffer = buffer + s
-    
-    if (opts.output.length != 0) println(s)
-    else printToFile(outputFile)(_.println(s))
-  }
-  
-  def comment(s: String) = emit(s, true)
 }

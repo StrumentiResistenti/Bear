@@ -151,14 +151,14 @@ object TableDeps {
         val rej = go(l, Nil)
       
         if (rej.size == l.size) {
-          Bear.comment(s"""
+          Emitter.comment(s"""
             |--
             |-- Error resolving candidate views: ${rej.size} views remaining 
             |-- but none can be resolved for missing dependencies. Aborting dump.
             |-- Unresolvable views are:
             |-- """.stripMargin)
-          rej foreach { v => Bear.comment(s"-- ${v.db}.${v.view}") }
-          Bear.comment("-- ")
+          rej foreach { v => Emitter.comment(s"-- ${v.db}.${v.view}") }
+          Emitter.comment("-- ")
           sys.exit(1)
         }
         
