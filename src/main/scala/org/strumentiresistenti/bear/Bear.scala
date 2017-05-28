@@ -74,7 +74,7 @@ object Bear extends App {
   /*
    * open the connection
    */
-  val src = new Bear(opts.driver, opts.pureUrl, opts.user, opts.pass)
+  val src = new Bear(opts.srcDriver, opts.srcPureUrl, opts.srcUser, opts.srcPass)
 
   /*
    * do the dump

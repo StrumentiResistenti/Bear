@@ -12,29 +12,32 @@ class Opts extends Command(
     |
     | (c) 2017 Tx0 <tx0@strumentiresistenti.org>""".stripMargin
 ) {
+  val defaultJdbcDriver = "com.cloudera.hive.jdbc4.HS2Driver" /* "org.apache.hive.jdbc.HiveDriver" */
+  val defaultSrcUrl = "jdbc:hive2://localhost:10000/"
+
   /*
    * Connection parameters
    */
-  var driver = cliOpt[String](
-    description = "JDBC driver class for source", 
-    default = "com.cloudera.hive.jdbc4.HS2Driver" /* "org.apache.hive.jdbc.HiveDriver" */)
+  var srcDriver = cliOpt[String](
+    description = s"JDBC driver class for source\n(Default: $defaultJdbcDriver)", 
+    default = defaultJdbcDriver)
   
-  var url = cliOpt[String](
-    description = "Source JDBC URL", 
-    default = "jdbc:hive2://localhost:10000/")
+  var srcUrl = cliOpt[String](
+    description = s"Source JDBC URL\n(Default: $defaultSrcUrl)", 
+    default = defaultSrcUrl)
   
-  var urlOpt = cliOpt[String](
+  var srcUrlOpt = cliOpt[String](
     description = "Options to be appended to source URL",
   	default = "AuthMech=0")
   
   /*
    * Authentication parameters
    */
-  var user = cliOpt[String](
+  var srcUser = cliOpt[String](
     description = "Source username",
     default = "hive")
     
-  var pass = cliOpt[String](
+  var srcPass = cliOpt[String](
     description = "Source password",
     default = "noPasswordProvided")
 
@@ -68,7 +71,7 @@ class Opts extends Command(
     abbrev = "L")
     
   var dropTable = cliOpt[Boolean](
-    description = "Add DROP TABLE IF EXISTS <tablename> before CREATE TABLE",
+    description = "Add a DROP TABLE IF EXISTS ... before CREATE TABLE",
     abbrev = "T")
     
   var ignorePartitions = cliOpt[Boolean](
@@ -79,8 +82,8 @@ class Opts extends Command(
    * Connection parameters
    */
   var dstDriver = cliOpt[String](
-    description = "JDBC driver class for destination", 
-    default = "com.cloudera.hive.jdbc4.HS2Driver")
+    description = s"JDBC driver class for destination\n(Default: $defaultJdbcDriver)", 
+    default = defaultJdbcDriver)
   
   var dstUrl = cliOpt[String](
     description = "Destination JDBC URL", 
@@ -105,13 +108,13 @@ class Opts extends Command(
   /*
    * Extra methods
    */
-  def cleanUrl = urlCleaner(url)
-  def dbUrl(db: String) = s"${cleanUrl}/$db?$urlOpt"
-  def pureUrl = s"${cleanUrl}/$urlOpt"
+  def srcCleanUrl = urlCleaner(srcUrl)
+  def srcDbUrl(db: String) = s"${srcCleanUrl}/$db?$srcUrlOpt"
+  def srcPureUrl = s"${srcCleanUrl}/$srcUrlOpt"
   
   def dstCleanUrl = urlCleaner(dstUrl)
-  def dstDbUrl(db: String) = s"${dstCleanUrl}/$db$urlOpt"
-  def dstPureUrl = s"${dstCleanUrl}/$urlOpt" 
+  def dstDbUrl(db: String) = s"${dstCleanUrl}/$db$dstUrlOpt"
+  def dstPureUrl = s"${dstCleanUrl}/$dstUrlOpt" 
 }
 
 object Opts {
