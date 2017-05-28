@@ -8,17 +8,19 @@ import System.err.{println => errln}
  */
 class Opts extends Command(
   name = "Bear", 
-  description = "Schema migration tool for Hive and Impala"
+  description = s"""Schema migration tool for Hive and Impala
+    |
+    | (c) 2017 Tx0 <tx0@strumentiresistenti.org>""".stripMargin
 ) {
   /*
    * Connection parameters
    */
   var driver = cliOpt[String](
-    description = "JDBC driver class to use for source", 
+    description = "JDBC driver class for source", 
     default = "com.cloudera.hive.jdbc4.HS2Driver" /* "org.apache.hive.jdbc.HiveDriver" */)
   
   var url = cliOpt[String](
-    description = "JDBC URL to connect to source", 
+    description = "Source JDBC URL", 
     default = "jdbc:hive2://localhost:10000/")
   
   var urlOpt = cliOpt[String](
@@ -29,18 +31,18 @@ class Opts extends Command(
    * Authentication parameters
    */
   var user = cliOpt[String](
-    description = "Username to establish the connection to source",
+    description = "Source username",
     default = "hive")
     
   var pass = cliOpt[String](
-    description = "Password to establish the connection to source",
+    description = "Source password",
     default = "noPasswordProvided")
 
   /*
    * Operative parameters
    */
   var database = cliOpt[String](
-    description = "Database to dump",
+    description = "Dump this database only\n(Hive's 'default' is implicitly used)",
     default = "default")
   
   var allDatabases = cliOpt[Boolean](
@@ -77,11 +79,11 @@ class Opts extends Command(
    * Connection parameters
    */
   var dstDriver = cliOpt[String](
-    description = "JDBC driver class to use for destination", 
+    description = "JDBC driver class for destination", 
     default = "com.cloudera.hive.jdbc4.HS2Driver")
   
   var dstUrl = cliOpt[String](
-    description = "JDBC destination URL to connect", 
+    description = "Destination JDBC URL", 
     default = "")
   
   var dstUrlOpt = cliOpt[String](
@@ -92,11 +94,11 @@ class Opts extends Command(
    * Authentication parameters
    */
   var dstUser = cliOpt[String](
-    description = "Username to establish destination connection",
+    description = "Destination username",
     default = "hive")
     
   var dstPass = cliOpt[String](
-    description = "Password to establish destination connection",
+    description = "Destination password",
     default = "noPasswordProvided")
 
   private def urlCleaner(url: String) = url.replaceAll("/$", "")

@@ -12,6 +12,7 @@ libraryDependencies ++= Seq(
 	"org.apache.logging.log4j" % "log4j-api" % "2.8.2",
 	"org.apache.logging.log4j" % "log4j-core" % "2.8.2",
 	"org.apache.logging.log4j" %% "log4j-api-scala" % "2.8.2",
+	"org.slf4j" % "slf4j-nop" % "1.7.25",
 	
 	// Cloudera hive driver
 	// "org.apache.hive" % "hive-exec" % "1.1.0-cdh5.8.5",
