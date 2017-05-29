@@ -69,7 +69,7 @@ object Bear extends App {
    * init the Emitter
    */
   Emitter.init(opts)
-  import Emitter.{comment, emit}
+  import Emitter.{comment, emit, emitBuffer}
   
   /*
    * open the connection
@@ -111,10 +111,11 @@ object Bear extends App {
       |--
       |-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --""".stripMargin)
      
-    emit(s"use $db;")
+    emit(s"use $db")
     tables.foreach(t => dumpTable(t, db))
     
     dumpUpperDependencies
+	emitBuffer
   }
   
   private def dumpTable(tbl: String, db: String): Unit = {
@@ -127,12 +128,12 @@ object Bear extends App {
 
       comment(s"\n--\n-- Table $tbl\n--")
 
-      if (opts.dropTable) emit(s"DROP TABLE IF EXISTS $tbl;\n")
+      if (opts.dropTable) emit(s"DROP TABLE IF EXISTS $tbl\n")
       
       if (opts.dropLocation) 
-        emit(dropLocationRx.replaceAllIn(s"$ddl;", ""))
+        emit(dropLocationRx.replaceAllIn(s"$ddl", ""))
       else 
-        emit(s"$ddl;")
+        emit(s"$ddl")
 
       /*
        * check if table support partitioning and produce partitions
@@ -149,7 +150,7 @@ object Bear extends App {
       val tokens = p.ddl.split("/").toList
       val escaped = tokens.map { _.replaceAll("=", "='") + "'" }.mkString(",")
       
-      emit(s"ALTER TABLE $tbl CREATE PARTITION ($escaped);")
+      emit(s"ALTER TABLE `$tbl` CREATE PARTITION ($escaped)")
     }
   }
   
@@ -176,8 +177,8 @@ object Bear extends App {
   private def dumpView(view: String, ddl: String): Unit = {
     comment(s"\n--\n-- View: $view\n--")
     
-    if (opts.dropTable) emit(s"DROP VIEW IF EXISTS $view;")
-    emit(s"$ddl;")
+    if (opts.dropTable) emit(s"DROP VIEW IF EXISTS $view")
+    emit(s"$ddl")
   }
   
 }

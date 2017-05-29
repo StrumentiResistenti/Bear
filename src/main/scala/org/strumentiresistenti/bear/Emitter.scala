@@ -37,12 +37,12 @@ object Emitter {
   /*
    * just print each statement on STDOUT
    */
-  def emitToStdout(s: String, comment: Boolean) = println(s)
+  def emitToStdout(s: String, comment: Boolean) = println(if (comment) s else s"$s;")
   
   /*
    * append each statement to the output filename provided on command line
    */
-  def emitToOutput(s: String, comment: Boolean) = outputFile.get.println(s)
+  def emitToOutput(s: String, comment: Boolean) = outputFile.get.println(if (comment) s else s"$s;")
   
   /*
    * append SQL statement to internal buffer which should be flushed with emitBuffer()
@@ -59,18 +59,20 @@ object Emitter {
    * flush the SQL buffer that holds statement to be reproduced on destination DB
    */
   def emitBuffer: Unit = {
-    val dst = new Bear(opts.dstDriver, opts.dstPureUrl, opts.dstUser, opts.dstPass)
+  	if (!buffer.isEmpty) {
+      val dst = new Bear(opts.dstDriver, opts.dstPureUrl, opts.dstUser, opts.dstPass)
+      
+      def emitBufferStatement(s: String): Unit = try {
+        dst.exec(s)
+      } catch {
+        case e: Exception => {
+          errln(s"Error running query on destination: ${e.getMessage}")
+          errln(s"[$s]")
+          errln(e.getStackTrace)
+        }      
+      }
     
-    def emitBufferStatement(s: String): Unit = try {
-      dst.exec(s)
-    } catch {
-      case e: Exception => {
-        errln(s"Error running query on destination: ${e.getMessage}")
-        errln(s"[$s]")
-        errln(e.getStackTrace)
-      }      
-    }
-  
-    buffer.reverse.foreach(emitBufferStatement)
+      buffer.reverse.foreach(emitBufferStatement)
+	}
   }
 }
