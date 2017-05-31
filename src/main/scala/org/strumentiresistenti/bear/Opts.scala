@@ -14,6 +14,13 @@ class Opts extends Command(
 ) {
   val defaultJdbcDriver = "com.cloudera.hive.jdbc4.HS2Driver" /* "org.apache.hive.jdbc.HiveDriver" */
   val defaultSrcUrl = "jdbc:hive2://localhost:10000/"
+  
+  /*
+   * Arbitrary query
+   */
+  var query = cliOpt[Boolean](
+    description = "An arbitrary query to execute on source connection",
+    abbrev = "q")
 
   /*
    * Connection parameters
@@ -103,8 +110,14 @@ class Opts extends Command(
   var dstPass = cliOpt[String](
     description = "Destination password",
     default = "noPasswordProvided")
+    
+  /*
+   * Catch the rest of the command line
+   */
+  var xs = args[Seq[String]](description = "SQL query, if -q is provided", name = "sql")
 
   private def urlCleaner(url: String) = url.replaceAll("/$", "")
+  
   /*
    * Extra methods
    */
