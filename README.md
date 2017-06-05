@@ -49,6 +49,8 @@ Commands
 
 No command found, expected one of dump, query
 ```
+Build instructions
+------------------
 Bear is built with SBT. To build it:
 
 ```
@@ -72,6 +74,7 @@ java -jar /usr/local/lib/bear-assembly-0.1.jar $@
 ```
 A better install procedure will be provided somewhere in the future.
 
-*Why bear?*
+Why bear?
+---------
 
 Partly because a bear is *hive* plunderer and partly because this tool *bears* things (metadata) away, to another place. Got the pun?
