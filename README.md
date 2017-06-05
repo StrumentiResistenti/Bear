@@ -1,7 +1,9 @@
 # Bear
 Hive dump tool
 
-Bear is the evolution of HiveDump. It's a complete rewrite of the tool using Scala. The basic idea is to use JDBC to query a source database to fetch its metadata and the emit them on a selectable output: standardout, a file or another JDBC connection. Some transformations are allowed during the process, like removing the `LOCATION`, adding a `DROP TABLE/VIEW IF EXISTS` before each `CREATE`, add the `IF NOT EXISTS` clause before each table or view and drop `ALTER TABLE .. CREATE PARTITION` statements.
+Bear is the evolution of HiveDump. It's a complete rewrite of the tool using Scala. The basic idea is to use JDBC to query a source database to fetch its metadata and the emit them on a selectable channel: standard output, a file or another JDBC connection. Some transformations are allowed during the process, like removing the `LOCATION`, adding a `DROP TABLE/VIEW IF EXISTS` before each `CREATE`, add the `IF NOT EXISTS` clause before each table or view and drop `ALTER TABLE .. CREATE PARTITION` statements.
+
+A `query` subcommand is provided to ease the metadata export. Query results are output on standard output. This feature is supposed to be used for queries like `show table` or `show partitions <table>`.
 
 ```
 Usage
