@@ -54,8 +54,8 @@ Bear is built with SBT. To build it:
 ```
 $ sbt
 [info] Loading global plugins from /home/tx0/.sbt/0.13/plugins
-[info] Loading project definition from /media/tx0/scala_workspace/bear/project
-[info] Set current project to bear (in build file:/media/tx0/scala_workspace/bear/)
+[info] Loading project definition from /home/tx0/scala_workspace/bear/project
+[info] Set current project to bear (in build file:/home/tx0/scala_workspace/bear/)
 > compile
 [success] Total time: 0 s, completed Jun 6, 2017 12:05:16 AM
 > assembly
