@@ -18,9 +18,9 @@ class Opts extends Command(
   /*
    * Arbitrary query
    */
-  var query = cliOpt[Boolean](
+  var query = cliOpt[Seq[String]](
     description = "An arbitrary query to execute on source connection",
-    abbrev = "q")
+    default = Nil)
 
   /*
    * Connection parameters
@@ -114,7 +114,7 @@ class Opts extends Command(
   /*
    * Catch the rest of the command line
    */
-  var xs = args[Seq[String]](description = "SQL query, if -q is provided", name = "sql")
+  // var xs = args[Seq[String]](description = "SQL query, if -q is provided", name = "sql")
 
   private def urlCleaner(url: String) = url.replaceAll("/$", "")
   

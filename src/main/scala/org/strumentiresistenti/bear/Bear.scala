@@ -109,7 +109,7 @@ object Bear extends App {
   /*
    * do the dump
    */
-  if (opts.query) src.arbitraryQuery(opts.xs.mkString(" "))
+  if (!opts.query.isEmpty) src.arbitraryQuery(opts.query.mkString(" "))
   else if (opts.allDatabases) dumpAllDatabases 
   else dumpDatabase(opts.database)
     
