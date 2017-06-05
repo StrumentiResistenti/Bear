@@ -49,3 +49,24 @@ Commands
 
 No command found, expected one of dump, query
 ```
+Bear is build with SBT. To build it:
+
+```
+$ sbt
+[info] Loading global plugins from /home/tx0/.sbt/0.13/plugins
+[info] Loading project definition from /media/tx0/lumacax/scala_workspace/bear/project
+[info] Set current project to bear (in build file:/media/tx0/lumacax/scala_workspace/bear/)
+> compile
+[success] Total time: 0 s, completed Jun 6, 2017 12:05:16 AM
+> assembly
+[...more output here...]
+> exit
+$ sudo cp target/scala-2.11/bear-assembly-0.1.jar /usr/local/lib/
+```
+Then create a file named `/usr/local/bin/bear` with this content:
+
+```
+#!/bin/sh
+
+java -jar /usr/local/lib/bear-assembly-0.1.jar $@
+```
