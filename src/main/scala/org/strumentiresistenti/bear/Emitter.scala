@@ -14,7 +14,7 @@ object Emitter {
   var emitter: EmitterFunc = _
 
   /*
-   * initialize the Emitter object
+   * initialize the emitter object
    */
   def init: Unit = {    
     outputFile = if (Dump.output.length == 0) None else {

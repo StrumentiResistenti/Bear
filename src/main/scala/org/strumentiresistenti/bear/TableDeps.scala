@@ -29,6 +29,7 @@ object TableDeps {
   var deps: Map[Int, Set[String]] = Map()
   var levels: Map[String, Int] = Map()
   var viewCandidates: List[ViewCandidate] = List()
+  var rejectedViews: List[ViewCandidate] = List()
   
   /*
    * Add a dependency to the stack
@@ -154,15 +155,17 @@ object TableDeps {
           Emitter.comment(s"""
             |--
             |-- Error resolving candidate views: ${rej.size} views remaining 
-            |-- but none can be resolved for missing dependencies. Aborting dump.
-            |-- Unresolvable views are:
+            |-- but none can be resolved for missing dependencies.
+            |-- Unresolvable views are dumped at the end of this script.
             |-- """.stripMargin)
-          rej foreach { v => Emitter.comment(s"-- ${v.db}.${v.view}") }
-          Emitter.comment("-- ")
-          sys.exit(1)
+            
+          // rej foreach { v => Emitter.comment(s"-- ${v.db}.${v.view}") }
+          // Emitter.comment("-- ")
+          // sys.exit(1)
+          rejectedViews = rej
+        } else {
+          stackScan(rej)
         }
-        
-        stackScan(rej)
       }
     }
     
@@ -173,5 +176,6 @@ object TableDeps {
     deps = Map()
     levels = Map()
     viewCandidates = List()
+    rejectedViews = List()
   }
 }

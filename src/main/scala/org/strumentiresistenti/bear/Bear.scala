@@ -72,7 +72,7 @@ class Bear(val driver: String, val url: String, val user: String, val password: 
   /*
    * Execute an arbitrary query
    */
-  private def arbitraryQuery(sql: String): Unit = {
+  def arbitraryQuery(sql: String): Unit = {
     try {
       val query = SQL(sql)
       query.foreach(recordPrinterFactory)
@@ -89,16 +89,11 @@ class Bear(val driver: String, val url: String, val user: String, val password: 
 object Bear extends App {
   implicit val session: DBSession = AutoSession
   
-  val dropLocationRx = """LOCATION\n\s+'[^']+'\n""".r
-  
   /*
-   * parse command line
+   * parse command line and execute the command
    */
-  val cmd = Opts.parse(args)
-  
-  cmd match {
-    case Dump => dump
-    case Query => query
+  Opts.parse(args) match {
+    case c: CommandRunner => c.run
   }
   
   /*
@@ -106,116 +101,4 @@ object Bear extends App {
    */
   session.close()
   sys.exit(0)
-  
-  import Emitter.{comment, emit, emitBuffer}
-  
-  def dump: Unit = {
-    val src = new Bear(Dump.srcDriver, Dump.srcPureUrl, Dump.srcUser, Dump.srcPass)
-  
-    /*
-     * do the dump
-     */
-    Emitter.init
-    if (Dump.allDatabases) dumpAllDatabases(src)
-    else dumpDatabase(src, Dump.database)
-  }
-  
-  def query: Unit = {
-    val src = new Bear(Query.driver, Query.pureUrl, Query.user, Query.pass)
-    src.arbitraryQuery(Query.query.mkString(" "))
-  }
-  
-  /*
-   * internal methods
-   */
-  private def dumpAllDatabases(src: Bear): Unit = {
-    val dbs = src.getDatabases.map(_.database) 
-    dbs.foreach(d => dumpDatabase(src, d)) 
-  }
-
-  private def dumpDatabase(src: Bear, db: String): Unit = {
-  	src.exec(s"use $db")
-  	
-  	TableDeps.clean
-  	Emitter.reset
-    
-    val tables = src.getTables.map(_.name)
-    
-    comment(s"""
-      |-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-      |--
-      |-- Database: $db (${tables.size} tables/views)
-      |--
-      |-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --""".stripMargin)
-     
-    emit(s"use $db")
-    tables.foreach(t => dumpTable(src, t, db))
-    
-    dumpUpperDependencies(src)
-	  emitBuffer
-  }
-  
-  private def dumpTable(src: Bear, tbl: String, db: String): Unit = {
-    val ddl = src.getTableDDL(tbl)
-    
-    if (ddl.toUpperCase().contains("CREATE VIEW")) {
-      TableDeps.addViewCandidate(tbl, db, ddl)
-    } else {
-      TableDeps.addTable(tbl)
-
-      comment(s"\n--\n-- Table $tbl\n--")
-
-      if (Dump.dropTable) emit(s"DROP TABLE IF EXISTS $tbl\n")
-      
-      if (Dump.dropLocation) 
-        emit(dropLocationRx.replaceAllIn(s"$ddl", ""))
-      else 
-        emit(s"$ddl")
-
-      /*
-       * check if table support partitioning and produce partitions
-       */
-      if (ddl.toUpperCase().contains("PARTITIONED BY (") && !Dump.ignorePartitions) {
-        dumpTablePartitions(src, tbl)
-      }
-    }
-  }
-  
-  private def dumpTablePartitions(src: Bear, tbl: String): Unit = {
-    val parts = src.getTablePartitions(tbl)
-    parts foreach { p =>
-      val tokens = p.ddl.split("/").toList
-      val escaped = tokens.map { _.replaceAll("=", "='") + "'" }.mkString(",")
-      
-      emit(s"ALTER TABLE `$tbl` CREATE PARTITION ($escaped)")
-    }
-  }
-  
-  private def dumpUpperDependencies(src: Bear): Unit = {
-    /*
-     * 1. resolve views in the right order
-     */
-    TableDeps.resolveViewCandidates    
-    
-    /*
-     * 2. dump the 
-     */
-    val vs = (TableDeps.deps - 0).toList.sortBy{ case (i, _) => i }
-    
-    comment(s"\n--\n-- Dumping ${vs.size} views\n--\n")
-    vs foreach { case (_, views) =>
-      views foreach { s =>
-        val ddl = src.getTableDDL(s)
-        dumpView(s, ddl)
-      }
-    }
-  }
-  
-  private def dumpView(view: String, ddl: String): Unit = {
-    comment(s"\n--\n-- View: $view\n--")
-    
-    if (Dump.dropTable) emit(s"DROP VIEW IF EXISTS $view")
-    emit(s"$ddl")
-  }
-  
 }
