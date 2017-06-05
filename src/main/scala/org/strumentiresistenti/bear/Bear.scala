@@ -3,6 +3,7 @@ package org.strumentiresistenti.bear
 import scalikejdbc._
 import System.err.{println => errln}
 import java.sql.ResultSetMetaData
+import org.backuity.clist.Command
 
 /**
  * The application data model
@@ -93,41 +94,46 @@ object Bear extends App {
   /*
    * parse command line
    */
-  val opts = Opts.parse(args)
+  val cmd = Opts.parse(args)
   
-  /*
-   * init the Emitter
-   */
-  Emitter.init(opts)
-  import Emitter.{comment, emit, emitBuffer}
+  cmd match {
+    case Dump => dump
+    case Query => query
+  }
   
-  /*
-   * open the connection
-   */
-  val src = new Bear(opts.srcDriver, opts.srcPureUrl, opts.srcUser, opts.srcPass)
-
-  /*
-   * do the dump
-   */
-  if (!opts.query.isEmpty) src.arbitraryQuery(opts.query.mkString(" "))
-  else if (opts.allDatabases) dumpAllDatabases 
-  else dumpDatabase(opts.database)
-    
   /*
    * close and exit
    */
   session.close()
   sys.exit(0)
   
+  import Emitter.{comment, emit, emitBuffer}
+  
+  def dump: Unit = {
+    val src = new Bear(Dump.srcDriver, Dump.srcPureUrl, Dump.srcUser, Dump.srcPass)
+  
+    /*
+     * do the dump
+     */
+    Emitter.init
+    if (Dump.allDatabases) dumpAllDatabases(src)
+    else dumpDatabase(src, Dump.database)
+  }
+  
+  def query: Unit = {
+    val src = new Bear(Query.driver, Query.pureUrl, Query.user, Query.pass)
+    src.arbitraryQuery(Query.query.mkString(" "))
+  }
+  
   /*
    * internal methods
    */
-  private def dumpAllDatabases: Unit = {
+  private def dumpAllDatabases(src: Bear): Unit = {
     val dbs = src.getDatabases.map(_.database) 
-    dbs.foreach(dumpDatabase) 
+    dbs.foreach(d => dumpDatabase(src, d)) 
   }
 
-  private def dumpDatabase(db: String): Unit = {
+  private def dumpDatabase(src: Bear, db: String): Unit = {
   	src.exec(s"use $db")
   	
   	TableDeps.clean
@@ -143,13 +149,13 @@ object Bear extends App {
       |-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --""".stripMargin)
      
     emit(s"use $db")
-    tables.foreach(t => dumpTable(t, db))
+    tables.foreach(t => dumpTable(src, t, db))
     
-    dumpUpperDependencies
-	emitBuffer
+    dumpUpperDependencies(src)
+	  emitBuffer
   }
   
-  private def dumpTable(tbl: String, db: String): Unit = {
+  private def dumpTable(src: Bear, tbl: String, db: String): Unit = {
     val ddl = src.getTableDDL(tbl)
     
     if (ddl.toUpperCase().contains("CREATE VIEW")) {
@@ -159,9 +165,9 @@ object Bear extends App {
 
       comment(s"\n--\n-- Table $tbl\n--")
 
-      if (opts.dropTable) emit(s"DROP TABLE IF EXISTS $tbl\n")
+      if (Dump.dropTable) emit(s"DROP TABLE IF EXISTS $tbl\n")
       
-      if (opts.dropLocation) 
+      if (Dump.dropLocation) 
         emit(dropLocationRx.replaceAllIn(s"$ddl", ""))
       else 
         emit(s"$ddl")
@@ -169,13 +175,13 @@ object Bear extends App {
       /*
        * check if table support partitioning and produce partitions
        */
-      if (ddl.toUpperCase().contains("PARTITIONED BY (") && !opts.ignorePartitions) {
-        dumpTablePartitions(tbl: String)
+      if (ddl.toUpperCase().contains("PARTITIONED BY (") && !Dump.ignorePartitions) {
+        dumpTablePartitions(src, tbl)
       }
     }
   }
   
-  private def dumpTablePartitions(tbl: String): Unit = {
+  private def dumpTablePartitions(src: Bear, tbl: String): Unit = {
     val parts = src.getTablePartitions(tbl)
     parts foreach { p =>
       val tokens = p.ddl.split("/").toList
@@ -185,7 +191,7 @@ object Bear extends App {
     }
   }
   
-  private def dumpUpperDependencies: Unit = {
+  private def dumpUpperDependencies(src: Bear): Unit = {
     /*
      * 1. resolve views in the right order
      */
@@ -208,7 +214,7 @@ object Bear extends App {
   private def dumpView(view: String, ddl: String): Unit = {
     comment(s"\n--\n-- View: $view\n--")
     
-    if (opts.dropTable) emit(s"DROP VIEW IF EXISTS $view")
+    if (Dump.dropTable) emit(s"DROP VIEW IF EXISTS $view")
     emit(s"$ddl")
   }
   

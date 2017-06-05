@@ -3,25 +3,22 @@ package org.strumentiresistenti.bear
 import org.backuity.clist.{Cli, Command, args, arg, opt => cliOpt}
 import System.err.{println => errln}
 
+object Default {
+  val defaultJdbcDriver = "com.cloudera.hive.jdbc4.HS2Driver" /* "org.apache.hive.jdbc.HiveDriver" */
+  val defaultSrcUrl = "jdbc:hive2://localhost:10000/"  
+  
+  def urlCleaner(url: String) = url.replaceAll("/$", "")
+}
+
 /**
  * Command line option management
  */
-class Opts extends Command(
-  name = "Bear", 
-  description = s"""Schema migration tool for Hive and Impala
-    |
-    | (c) 2017 Tx0 <tx0@strumentiresistenti.org>""".stripMargin
+object Dump extends Command(
+  name = "dump", 
+  description = s"""Schema migration tool for Hive and Impala""".stripMargin
 ) {
-  val defaultJdbcDriver = "com.cloudera.hive.jdbc4.HS2Driver" /* "org.apache.hive.jdbc.HiveDriver" */
-  val defaultSrcUrl = "jdbc:hive2://localhost:10000/"
+  import Default._
   
-  /*
-   * Arbitrary query
-   */
-  var query = cliOpt[Seq[String]](
-    description = "An arbitrary query to execute on source connection",
-    default = Nil)
-
   /*
    * Connection parameters
    */
@@ -112,13 +109,6 @@ class Opts extends Command(
     default = "noPasswordProvided")
     
   /*
-   * Catch the rest of the command line
-   */
-  // var xs = args[Seq[String]](description = "SQL query, if -q is provided", name = "sql")
-
-  private def urlCleaner(url: String) = url.replaceAll("/$", "")
-  
-  /*
    * Extra methods
    */
   def srcCleanUrl = urlCleaner(srcUrl)
@@ -130,9 +120,61 @@ class Opts extends Command(
   def dstPureUrl = s"${dstCleanUrl}/$dstUrlOpt" 
 }
 
+object Query extends Command(
+  name = "query", 
+  description = s"""Run queries on Hive and Impala""".stripMargin
+) {
+  import Default._
+
+  /*
+   * Connection parameters
+   */
+  var driver = cliOpt[String](
+    description = s"JDBC driver class for source\n(Default: $defaultJdbcDriver)", 
+    default = defaultJdbcDriver)
+  
+  var url = cliOpt[String](
+    description = s"Source JDBC URL\n(Default: $defaultSrcUrl)", 
+    default = defaultSrcUrl)
+  
+  var urlOpt = cliOpt[String](
+    description = "Options to be appended to source URL",
+  	default = "AuthMech=0")
+  
+  /*
+   * Authentication parameters
+   */
+  var user = cliOpt[String](
+    description = "Source username",
+    default = "hive")
+    
+  var pass = cliOpt[String](
+    description = "Source password",
+    default = "noPasswordProvided")
+
+  /*
+   * Operative parameters
+   */
+  var database = cliOpt[String](
+    description = "Execute query on this database\n(Hive's 'default' is implicitly used)",
+    default = "default")
+  
+  /*
+   * Catch the rest of the command line
+   */
+  var query = args[Seq[String]](description = "SQL query")
+  
+  /*
+   * Extra methods
+   */
+  def cleanUrl = urlCleaner(url)
+  def dbUrl(db: String) = s"${cleanUrl}/$db?$urlOpt"
+  def pureUrl = s"${cleanUrl}/$urlOpt"  
+}
+
 object Opts {
   def parse(args: Array[String]) = {
-    (Cli.parse(args).withCommand(new Opts){case o => o}) getOrElse {
+    (Cli.parse(args).withCommands(Dump, Query)) getOrElse {
       errln("Unable to parse options")
       sys.exit(1)
     }

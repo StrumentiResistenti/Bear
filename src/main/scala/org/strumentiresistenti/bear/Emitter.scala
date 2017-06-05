@@ -1,6 +1,7 @@
 package org.strumentiresistenti.bear
 
 import System.err.{println => errln}
+import org.backuity.clist.Command
 
 object Emitter {
   type EmitterFunc = (String, Boolean) => Unit
@@ -11,19 +12,16 @@ object Emitter {
   var buffer: List[String] = _
   var outputFile: Option[java.io.PrintWriter] = _
   var emitter: EmitterFunc = _
-  var opts: Opts = _
 
   /*
    * initialize the Emitter object
    */
-  def init(opts: Opts): Unit = {
-    this.opts = opts
-    
-    outputFile = if (opts.output.length == 0) None else {
-      Some(new java.io.PrintWriter(new java.io.File(opts.output))) 
+  def init: Unit = {    
+    outputFile = if (Dump.output.length == 0) None else {
+      Some(new java.io.PrintWriter(new java.io.File(Dump.output))) 
     }
     
-    emitter = if (opts.dstUrl != "") emitToDestination
+    emitter = if (Dump.dstUrl != "") emitToDestination
               else if (!outputFile.isEmpty) emitToOutput
               else emitToStdout
 
@@ -60,7 +58,7 @@ object Emitter {
    */
   def emitBuffer: Unit = {
   	if (!buffer.isEmpty) {
-      val dst = new Bear(opts.dstDriver, opts.dstPureUrl, opts.dstUser, opts.dstPass)
+      val dst = new Bear(Dump.dstDriver, Dump.dstPureUrl, Dump.dstUser, Dump.dstPass)
       
       def emitBufferStatement(s: String): Unit = try {
         dst.exec(s)
@@ -73,6 +71,6 @@ object Emitter {
       }
     
       buffer.reverse.foreach(emitBufferStatement)
-	}
+	  }
   }
 }
