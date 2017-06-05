@@ -71,3 +71,7 @@ Then create a file named `/usr/local/bin/bear` with this content:
 java -jar /usr/local/lib/bear-assembly-0.1.jar $@
 ```
 A better install procedure will be provided somewhere in the future.
+
+*Why bear?*
+
+Partly because a bear is *hive* plunderer and partly because this tool *bears* things (metadata) away, to another place. Got the pun?
