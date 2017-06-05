@@ -1,5 +1,5 @@
 # Bear
-Hive dump tool
+A Hive (metadata) dump tool
 
 Bear is the evolution of HiveDump. It's a complete rewrite of the tool using Scala. The basic idea is to use JDBC to query a source database to fetch its metadata and the emit them on a selectable channel: standard output, a file or another JDBC connection. Some transformations are allowed during the process, like removing the `LOCATION`, adding a `DROP TABLE/VIEW IF EXISTS` before each `CREATE`, add the `IF NOT EXISTS` clause before each table or view and drop `ALTER TABLE .. CREATE PARTITION` statements.
 
@@ -49,7 +49,7 @@ Commands
 
 No command found, expected one of dump, query
 ```
-Bear is build with SBT. To build it:
+Bear is built with SBT. To build it:
 
 ```
 $ sbt
