@@ -75,19 +75,49 @@ class Bear(val driver: String, val url: String, val user: String, val password: 
   /*
    * Produce a recordPrinter function to print data set records
    */
-  private def recordPrinterFactory: WrappedResultSet => Unit = {
+  private def recordPrinterFactory(pf: (Int, (Int) => String) => String): WrappedResultSet => Unit = {
     var printedLabel = false
     def recordPrinter(r: WrappedResultSet): Unit = {
       val nCols = r.metaData.getColumnCount
       if (!printedLabel) {
-        val header = "| " + (1 to nCols).map { i => r.metaData.getColumnLabel(i) }.mkString(" | ") + " |"
+        val header = "| " + (1 to nCols).map { 
+          i => pf(i, r.metaData.getColumnLabel) // ----------------
+        }.mkString(" | ") + " |"
+        println("-" * header.length)
         println(header)
         println("-" * header.length)
         printedLabel = true
       }
-      println("| " + (1 to nCols).map { i => r.any(i).toString() }.mkString(" | ") + " |")
+      println("| " + (1 to nCols).map { 
+        i => pf(i, r.any(_).toString()) // ------------------
+      }.mkString(" | ") + " |")
     }
     recordPrinter
+  }
+
+  private def verticalRecordPrinterFactory: WrappedResultSet => Unit = {
+    var printedLabel = false
+    def recordPrinter(r: WrappedResultSet): Unit = {
+      val nCols = r.metaData.getColumnCount
+      val max = (1 to nCols).map{ i => r.metaData.getColumnLabel(i).length }.max
+      (1 to nCols) foreach { i =>
+        val label = r.metaData.getColumnLabel(i)
+        val data = r.any(i).toString()
+        println(" " * (max - label.length) + s"$label = $data")
+      }
+      println("")
+    }
+    recordPrinter
+  }
+
+  private def cmpFieldLengths(a: List[Int], b: WrappedResultSet): List[Int] = {
+    def max(i1: Int, i2: Int) = if (i1 > i2) i1 else i2
+    def e(i: Int) = if (a.length > i) a(i) else 0
+    
+    val length = b.metaData.getColumnCount
+    (0 until length) map { i =>
+      max(max(e(i), b.any(i + 1).toString.length()), b.metaData.getColumnLabel(i + 1).length())
+    } toList
   }
   
   /*
@@ -96,10 +126,29 @@ class Bear(val driver: String, val url: String, val user: String, val password: 
   def arbitraryQuery(sql: String): Unit = {
     try {
       val query = SQL(sql)
-      query.foreach(recordPrinterFactory)
+
+      if (Query.verticalPrint) {
+        query.foreach(verticalRecordPrinterFactory)
+      } else {
+        val printField = 
+          if (!Query.prettyPrint) {
+            (i: Int, f: (Int) => String) => f(i)
+          } else {
+            val lengths = query.foldLeft(List[Int]())(cmpFieldLengths)
+            (i: Int, f: (Int) => String) => {
+              val h = f(i)
+              val fl = if (lengths.size > i - 1) lengths(i - 1) else 0
+              h + " " * (fl - h.length)
+            }
+          }
+      
+        query.foreach(recordPrinterFactory(printField))
+      }
     } catch {
-      case e: Exception =>
+      case e: Exception => {
         println(s"Error on [$sql]: ${e.getMessage}")
+        println(e.getStackTrace)
+      }
     }
   }
 }

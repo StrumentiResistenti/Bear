@@ -61,6 +61,19 @@ object Query extends Command(
     default = "default")
   
   /*
+   * Pretty-print query output
+   */
+  var prettyPrint = cliOpt[Boolean](
+    description = "Pretty print query output",
+    abbrev = "P",
+    default = false)
+    
+  var verticalPrint = cliOpt[Boolean](
+    description = "Print records vertically, a la MySQL",
+    abbrev = "G",
+    default = false)
+  
+  /*
    * Catch the rest of the command line
    */
   var query = args[Seq[String]](description = "SQL query")
