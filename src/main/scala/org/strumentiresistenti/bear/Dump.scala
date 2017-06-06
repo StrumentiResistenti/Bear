@@ -1,3 +1,22 @@
+/*
+   Bear -- A Hive metadata export tool -- Dump.scala
+   Copyright (C) 2017 Tx0 <tx0@strumentiresistenti.org>
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software Foundation,
+   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. 
+*/
+
 package org.strumentiresistenti.bear
 
 import org.backuity.clist.{Cli, Command, args, arg, opt => cliOpt}
@@ -67,11 +86,11 @@ object Dump extends Command (
     abbrev = "L")
     
   var dropTable = cliOpt[Boolean](
-    description = "Add a DROP TABLE IF EXISTS ... before CREATE TABLE",
+    description = "Add a DROP TABLE IF EXISTS ... \nbefore CREATE TABLE",
     abbrev = "T")
     
   var ignorePartitions = cliOpt[Boolean](
-    description = "Don't add ALTER TABLE ... CREATE PARTITION statements",
+    description = "Suppress ALTER TABLE ... CREATE PARTITION\nstatements",
     abbrev = "P")
     
   /*
@@ -121,7 +140,8 @@ object Dump extends Command (
      */
     Emitter.init
     if (Dump.allDatabases) dumpAllDatabases(src)
-    else dumpDatabase(src, Dump.database)    
+    else dumpDatabase(src, Dump.database)
+    Emitter.fin
   }
   
   /*

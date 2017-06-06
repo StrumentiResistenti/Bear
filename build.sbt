@@ -27,11 +27,11 @@ libraryDependencies ++= Seq(
 	"org.backuity.clist" %% "clist-macros" % "3.2.2" % "provided"
 )
 
-libraryDependencies += "mysql" % "mysql-connector-java" % "5.1.42"
+// libraryDependencies += "mysql" % "mysql-connector-java" % "5.1.42"
 
-resolvers += "conjars" at "http://conjars.org/repo"
+// resolvers += "conjars" at "http://conjars.org/repo"
 
-resolvers += "clojars" at "https://clojars.org/repo"
+// resolvers += "clojars" at "https://clojars.org/repo"
 
-resolvers += "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
+// resolvers += "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
 
