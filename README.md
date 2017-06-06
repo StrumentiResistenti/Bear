@@ -77,4 +77,4 @@ A better install procedure will be provided somewhere in the future.
 Why bear?
 ---------
 
-Partly because a bear is a *hive* plunderer and partly because this tool *bears* things (metadata) away, to another place. Got the pun?
+Partly because a bear is a *hive* plunderer and partly because this tool *bears* things (metadata) to another place. Got the pun?
