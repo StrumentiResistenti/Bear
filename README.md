@@ -74,6 +74,23 @@ java -jar /usr/local/lib/bear-assembly-0.1.jar $@
 ```
 A better install procedure will be provided somewhere in the future.
 
+How to pack an arbitrary JDBC driver
+------------------------------------
+Create a directory called `lib/` in the root directory of the project and copy all required jars inside it. Cloudera driver can be packed by providing the following jars in `lib/`:
+
+```
+$ ls lib/
+HiveJDBC4.jar
+TCLIServiceClient.jar
+hive_metastore.jar
+hive_service.jar
+libfb303-0.9.0.jar
+libthrift-0.9.0.jar
+ql.jar
+```
+
+When the jars are ready, just re-execute `sbt assembly` and copy the `bear-assembly-0.1.jar` again.
+
 Why bear?
 ---------
 
