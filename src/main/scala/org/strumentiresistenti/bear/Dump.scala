@@ -124,14 +124,17 @@ object Dump extends Command (
    */
   def srcCleanUrl = urlCleaner(srcUrl)
   def srcDbUrl(db: String) = s"${srcCleanUrl}/$db?$srcUrlOpt"
-  def srcPureUrl = s"${srcCleanUrl}/$srcUrlOpt"
+  def srcPureUrl = s"${srcCleanUrl}/?$srcUrlOpt"
   
   def dstCleanUrl = urlCleaner(dstUrl)
-  def dstDbUrl(db: String) = s"${dstCleanUrl}/$db$dstUrlOpt"
-  def dstPureUrl = s"${dstCleanUrl}/$dstUrlOpt"
+  def dstDbUrl(db: String) = s"${dstCleanUrl}/$db?$dstUrlOpt"
+  def dstPureUrl = s"${dstCleanUrl}/?$dstUrlOpt"
   
   import Emitter.{comment, emit, emitBuffer}
 
+  /**
+   * The command kernel
+   */
   override def run: Unit = {
     val src = new Bear(Dump.srcDriver, Dump.srcPureUrl, Dump.srcUser, Dump.srcPass)
   
@@ -144,11 +147,23 @@ object Dump extends Command (
     Emitter.fin
   }
   
+  def getDatabases(b: Bear): List[Database] = 
+    b.list("show databases", Database(_))
+  
+  def getTables(b: Bear): List[Table] = 
+    b.list("show tables", Table(_))
+  
+  def getTableDDL(b: Bear, table: String): String = 
+    b.listConcat(s"show create table $table", TableDDL(_))(_.ddl)
+  
+  def getTablePartitions(b: Bear, table: String): List[TablePartition] =
+    b.list(s"show partitions $table", TablePartition(_))
+  
   /*
    * internal methods
    */
   private def dumpAllDatabases(src: Bear): Unit = {
-    val dbs = src.getDatabases.map(_.database) 
+    val dbs = getDatabases(src).map(_.database) 
     dbs.foreach(d => dumpDatabase(src, d)) 
   }
 
@@ -158,7 +173,7 @@ object Dump extends Command (
   	TableDeps.clean
   	Emitter.reset
     
-    val tables = src.getTables.map(_.name)
+    val tables = getTables(src).map(_.name)
     
     comment(s"""
       |-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -176,8 +191,15 @@ object Dump extends Command (
   
   val dropLocationRx = """LOCATION\n\s+'[^']+'\n""".r
   
+  /**
+   * Dump a table
+   * 
+   * @param src the Bear source connection
+   * @param tbl the table name
+   * @param db the database name
+   */
   private def dumpTable(src: Bear, tbl: String, db: String): Unit = {
-    val ddl = src.getTableDDL(tbl)
+    val ddl = getTableDDL(src, tbl)
     
     if (ddl.toUpperCase().contains("CREATE VIEW")) {
       TableDeps.addViewCandidate(tbl, db, ddl)
@@ -202,8 +224,14 @@ object Dump extends Command (
     }
   }
   
+  /**
+   * Dump table partitions
+   * 
+   * @param src the Bear connection
+   * @param tbl the table name
+   */
   private def dumpTablePartitions(src: Bear, tbl: String): Unit = {
-    val parts = src.getTablePartitions(tbl)
+    val parts = getTablePartitions(src, tbl)
     parts foreach { p =>
       val tokens = p.ddl.split("/").toList
       val escaped = tokens.map { _.replaceAll("=", "='") + "'" }.mkString(",")
@@ -212,6 +240,11 @@ object Dump extends Command (
     }
   }
   
+  /**
+   * Dump views, if any
+   * 
+   * @param src the Bear connection
+   */
   private def dumpUpperDependencies(src: Bear): Unit = {
     /*
      * 1. resolve views in the right order
@@ -226,7 +259,7 @@ object Dump extends Command (
     comment(s"\n--\n-- Dumping resolved views\n--")
     vs foreach { case (_, views) =>
       views foreach { s =>
-        val ddl = src.getTableDDL(s)
+        val ddl = getTableDDL(src, s)
         comment(s"\n--\n-- View: $s\n--")
 
         if (Dump.dropTable) emit(s"DROP VIEW IF EXISTS $s")

@@ -83,8 +83,11 @@ object Query extends Command(
    */
   def cleanUrl = urlCleaner(url)
   def dbUrl(db: String) = s"${cleanUrl}/$db?$urlOpt"
-  def pureUrl = s"${cleanUrl}/$urlOpt"  
+  def pureUrl = s"${cleanUrl}/?$urlOpt"  
 
+  /**
+   * The command kernel
+   */
   override def run: Unit = {
     val src = new Bear(driver, pureUrl, user, pass)
     if (database != "") src.exec(s"use ${database}")

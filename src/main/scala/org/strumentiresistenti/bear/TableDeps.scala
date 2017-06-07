@@ -46,8 +46,8 @@ object TableDeps {
    * This map contains the dependency stack
    */
   var deps: Map[Int, Set[String]] = Map()
-  var levels: Map[String, Int] = Map()
-  var viewCandidates: List[ViewCandidate] = List()
+  private var levels: Map[String, Int] = Map()
+  private var viewCandidates: List[ViewCandidate] = List()
   var rejectedViews: List[ViewCandidate] = List()
   
   /*

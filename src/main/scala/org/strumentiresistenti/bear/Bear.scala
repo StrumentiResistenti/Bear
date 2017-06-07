@@ -60,83 +60,98 @@ class Bear(val driver: String, val url: String, val user: String, val password: 
     list(sql, mapper).map(transform).mkString("\n")
   }
   
-  def getDatabases: List[Database] = 
-    list("show databases", Database(_))
-  
-  def getTables: List[Table] = 
-    list("show tables", Table(_))
-  
-  def getTableDDL(table: String): String = 
-    listConcat(s"show create table $table", TableDDL(_))(_.ddl)
-  
-  def getTablePartitions(table: String): List[TablePartition] =
-    list(s"show partitions $table", TablePartition(_))
-  
-  /*
+  /**
    * Produce a recordPrinter function to print data set records
+   * 
+   * @param pf a function that formats the i-th field of a record using the function passed as second
    */
-  private def recordPrinterFactory(pf: (Int, (Int) => String) => String): WrappedResultSet => Unit = {
+  private def recordPrinterFactory(pf: (String, Int) => String): WrappedResultSet => Unit = {
     var printedLabel = false
-    def recordPrinter(r: WrappedResultSet): Unit = {
+
+    (r: WrappedResultSet) => {
       val nCols = r.metaData.getColumnCount
+      println(s"We have $nCols columns")
+      
       if (!printedLabel) {
         val header = "| " + (1 to nCols).map { 
-          i => pf(i, r.metaData.getColumnLabel) // ----------------
+          i => pf(r.metaData.getColumnLabel(i), i)
         }.mkString(" | ") + " |"
-        println("-" * header.length)
-        println(header)
-        println("-" * header.length)
+        val ruler = "-" * header.length
+        println(s"$ruler\n$header\n$ruler")
         printedLabel = true
       }
+      
       println("| " + (1 to nCols).map { 
-        i => pf(i, r.any(_).toString()) // ------------------
+        i => pf(r.any(i).toString(), i)
       }.mkString(" | ") + " |")
     }
-    recordPrinter
   }
 
-  private def verticalRecordPrinterFactory: WrappedResultSet => Unit = {
-    var printedLabel = false
-    def recordPrinter(r: WrappedResultSet): Unit = {
-      val nCols = r.metaData.getColumnCount
-      val max = (1 to nCols).map{ i => r.metaData.getColumnLabel(i).length }.max
-      (1 to nCols) foreach { i =>
-        val label = r.metaData.getColumnLabel(i)
-        val data = r.any(i).toString()
-        println(" " * (max - label.length) + s"$label = $data")
-      }
-      println("")
+  /**
+   * Prints a record vertically, a la MySQL when the query ends by \G,
+   * like in:
+   * 
+   *     date: 2014-02-30
+   *  vehicle: AB123CZ
+   *   driver: John Doe
+   * 
+   * @param r the record to print
+   */
+  def verticalRecordPrinter(r: WrappedResultSet): Unit = {
+    val nCols = r.metaData.getColumnCount
+    val max = (1 to nCols).map{ i => r.metaData.getColumnLabel(i).length }.max
+
+    for (i <- 1 to nCols) {
+      val label = r.metaData.getColumnLabel(i)
+      val data = r.any(i).toString()
+      println(" " * (max - label.length) + s"$label = $data")
     }
-    recordPrinter
+    
+    println("")
   }
 
+  /**
+   * foldLeft callback to fold the length of each field in a record keeping the highest
+   * 
+   * @param a the accumulator list with the longest length of each field
+   * @param b the record to fold
+   * @return a list with the longest length of each field
+   */
   private def cmpFieldLengths(a: List[Int], b: WrappedResultSet): List[Int] = {
     def max(i1: Int, i2: Int) = if (i1 > i2) i1 else i2
     def e(i: Int) = if (a.length > i) a(i) else 0
     
     val length = b.metaData.getColumnCount
-    (0 until length) map { i =>
-      max(max(e(i), b.any(i + 1).toString.length()), b.metaData.getColumnLabel(i + 1).length())
+    (0 until length) map { i => 
+      try {
+        max(max(e(i), b.any(i + 1).toString.length()), b.metaData.getColumnLabel(i + 1).length())
+      } catch {
+        case e: Exception => {
+          println(s"Error on element $i")
+          0
+        }
+      }
     } toList
   }
   
-  /*
+  /**
    * Execute an arbitrary query
+   * 
+   * @param sql the query to execute
    */
   def arbitraryQuery(sql: String): Unit = {
     try {
       val query = SQL(sql)
 
       if (Query.verticalPrint) {
-        query.foreach(verticalRecordPrinterFactory)
+        query.foreach(verticalRecordPrinter)
       } else {
         val printField = 
           if (!Query.prettyPrint) {
-            (i: Int, f: (Int) => String) => f(i)
+            (f: String, i: Int) => f
           } else {
             val lengths = query.foldLeft(List[Int]())(cmpFieldLengths)
-            (i: Int, f: (Int) => String) => {
-              val h = f(i)
+            (h: String, i: Int) => {
               val fl = if (lengths.size > i - 1) lengths(i - 1) else 0
               h + " " * (fl - h.length)
             }
@@ -147,7 +162,7 @@ class Bear(val driver: String, val url: String, val user: String, val password: 
     } catch {
       case e: Exception => {
         println(s"Error on [$sql]: ${e.getMessage}")
-        println(e.getStackTrace)
+        println(e.getStackTraceString)
       }
     }
   }
